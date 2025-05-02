@@ -34,18 +34,20 @@ fi
 
 touch $conf_path/aria2.session
 
-# Configure AriaNg to use the correct RPC endpoint through Traefik
-echo "Configuring AriaNg to use relative RPC path with proper CORS support"
+# IMPORTANT: Configure AriaNg to use the correct RPC path
+echo "Configuring AriaNg to use the correct RPC path with proper CORS support"
+# Use relative paths for RPC endpoint to avoid CORS issues
 sed -i 's#rpcInterface:"[^"]*"#rpcInterface:"jsonrpc"#g' $ariang_js_path
-sed -i 's#protocol:"[^"]*"#protocol:"https"#g' $ariang_js_path
-sed -i 's#rpcHost:"[^"]*"#rpcHost:window.location.hostname#g' $ariang_js_path
-sed -i 's#rpcPort:[^,]*#rpcPort:""#g' $ariang_js_path
-
-# If ARIA2RPCPORT is set, override the conf file
-if [ -n "$ARIA2RPCPORT" ]; then
-    echo "Overriding RPC port to $ARIA2RPCPORT"
-    sed -i "s/^rpc-listen-port=.*/rpc-listen-port=${ARIA2RPCPORT}/" $conf_path/aria2.conf
+# Use protocol based on environment variable or default to https
+if [ -n "$ARIANG_URL_SCHEME" ]; then
+    sed -i "s#protocol:\"[^\"]*\"#protocol:\"${ARIANG_URL_SCHEME}\"#g" $ariang_js_path
+else
+    sed -i 's#protocol:"[^"]*"#protocol:"https"#g' $ariang_js_path
 fi
+# Use empty hostname to make path relative to current hostname
+sed -i 's#rpcHost:"[^"]*"#rpcHost:""#g' $ariang_js_path
+# Remove port specification
+sed -i 's#rpcPort:[^,]*#rpcPort:""#g' $ariang_js_path
 
 userid="$(id -u)" # 65534 - nobody, 0 - root
 groupid="$(id -g)"
