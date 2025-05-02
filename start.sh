@@ -34,9 +34,18 @@ fi
 
 touch $conf_path/aria2.session
 
+# Configure AriaNg to connect directly to the RPC endpoint
+# Update the RPC URL to use relative path - this is very important
+echo "Configuring AriaNg to use relative RPC path"
+sed -i 's#rpcInterface:"[^"]*"#rpcInterface:"jsonrpc"#g' $ariang_js_path
+sed -i 's#protocol:"[^"]*"#protocol:"http"#g' $ariang_js_path
+sed -i 's#rpcHost:"[^"]*"#rpcHost:""#g' $ariang_js_path
+sed -i 's#rpcPort:[^,]*#rpcPort:""#g' $ariang_js_path
+
+# If ARIA2RPCPORT is set, override the conf file
 if [ -n "$ARIA2RPCPORT" ]; then
-    echo "Changing RPC request port to $ARIA2RPCPORT in AriaNg WebUI"
-    sed -i "s/6800/${ARIA2RPCPORT}/g" $ariang_js_path
+    echo "Overriding RPC port to $ARIA2RPCPORT"
+    sed -i "s/^rpc-listen-port=.*/rpc-listen-port=${ARIA2RPCPORT}/" $conf_path/aria2.conf
 fi
 
 userid="$(id -u)" # 65534 - nobody, 0 - root
@@ -50,19 +59,6 @@ fi
 
 chown -R "$userid":"$groupid" $conf_path
 chown -R "$userid":"$groupid" $data_path
-
-# Make sure the RPC port is correctly set in aria2.conf
-if ! grep -q "^rpc-listen-port=" $conf_path/aria2.conf; then
-    echo "Adding rpc-listen-port=6800 to aria2.conf"
-    echo "rpc-listen-port=6800" >> $conf_path/aria2.conf
-fi
-
-# Ensure rpc-listen-all is enabled
-if ! grep -q "^rpc-listen-all=true" $conf_path/aria2.conf; then
-    echo "Ensuring rpc-listen-all=true in aria2.conf"
-    sed -i '/^rpc-listen-all=/d' $conf_path/aria2.conf
-    echo "rpc-listen-all=true" >> $conf_path/aria2.conf
-fi
 
 # Start Caddy in the background
 echo "Starting Caddy web server"

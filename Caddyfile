@@ -3,14 +3,26 @@
   auto_https off
 }
 
-:8080
-reverse_proxy /jsonrpc 127.0.0.1:6800
-reverse_proxy /rpc 127.0.0.1:6800
+:8080 {
+  # Properly handle WebSocket for RPC
+  @websockets {
+    header Connection *Upgrade*
+    header Upgrade websocket
+  }
 
-root * /usr/local/www/ariang
-file_server
-encode gzip
+  # Handle WebSocket connections
+  reverse_proxy @websockets 127.0.0.1:6800
 
-log {
-  level warn
+  # Handle standard RPC requests
+  reverse_proxy /jsonrpc 127.0.0.1:6800
+  reverse_proxy /rpc 127.0.0.1:6800
+
+  # Serve the static files
+  root * /usr/local/www/ariang
+  file_server
+  encode gzip
+
+  log {
+    level warn
+  }
 }
