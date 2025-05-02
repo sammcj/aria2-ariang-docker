@@ -34,12 +34,11 @@ fi
 
 touch $conf_path/aria2.session
 
-# Configure AriaNg to connect directly to the RPC endpoint
-# Update the RPC URL to use relative path - this is very important
-echo "Configuring AriaNg to use relative RPC path"
+# Configure AriaNg to use the correct RPC endpoint through Traefik
+echo "Configuring AriaNg to use relative RPC path with proper CORS support"
 sed -i 's#rpcInterface:"[^"]*"#rpcInterface:"jsonrpc"#g' $ariang_js_path
-sed -i 's#protocol:"[^"]*"#protocol:"http"#g' $ariang_js_path
-sed -i 's#rpcHost:"[^"]*"#rpcHost:""#g' $ariang_js_path
+sed -i 's#protocol:"[^"]*"#protocol:"https"#g' $ariang_js_path
+sed -i 's#rpcHost:"[^"]*"#rpcHost:window.location.hostname#g' $ariang_js_path
 sed -i 's#rpcPort:[^,]*#rpcPort:""#g' $ariang_js_path
 
 # If ARIA2RPCPORT is set, override the conf file
