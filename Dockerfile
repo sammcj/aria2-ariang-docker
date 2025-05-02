@@ -1,22 +1,25 @@
-FROM alpine:3.16.0
+FROM alpine:3.21.3
 
-ARG ARIANG_VERSION
-ARG BUILD_DATE
-ARG VCS_REF
+ARG ARIANG_VERSION=1.3.10
+ENV ARIANG_VERSION=${ARIANG_VERSION}
+ARG BUILD_DATE=latest
+ENV BUILD_DATE=${BUILD_DATE}
+ARG VCS_REF=main
+ENV VCS_REF=${VCS_REF}
 
 ENV ARIA2RPCPORT=8080
 
-LABEL maintainer="hurlenko" \
+LABEL maintainer="sammcj" \
     org.label-schema.build-date=$BUILD_DATE \
     org.label-schema.name="aria2-ariang" \
     org.label-schema.description="Aria2 downloader and AriaNg webui Docker image based on Alpine Linux" \
     org.label-schema.version=$ARIANG_VERSION \
-    org.label-schema.url="https://github.com/hurlenko/aria2-ariang-docker" \
+    org.label-schema.url="https://github.com/sammcj/aria2-ariang-docker" \
     org.label-schema.license="MIT" \
     org.label-schema.vcs-ref=$VCS_REF \
-    org.label-schema.vcs-url="https://github.com/hurlenko/aria2-ariang-docker" \
+    org.label-schema.vcs-url="https://github.com/sammcj/aria2-ariang-docker" \
     org.label-schema.vcs-type="Git" \
-    org.label-schema.vendor="hurlenko" \
+    org.label-schema.vendor="sammcj" \
     org.label-schema.schema-version="1.0"
 
 RUN apk update \

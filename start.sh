@@ -3,6 +3,7 @@
 conf_path=/aria2/conf
 conf_copy_path=/aria2/conf-copy
 data_path=/aria2/data
+# shellcheck disable=SC2125
 ariang_js_path=/usr/local/www/ariang/js/aria-ng*.js
 
 # If config does not exist - use default
@@ -16,7 +17,8 @@ if [ -n "$RPC_SECRET" ]; then
 
     if [ -n "$EMBED_RPC_SECRET" ]; then
         echo "Embedding RPC secret into ariang Web UI"
-        RPC_SECRET_BASE64=$(echo -n "${RPC_SECRET}" | base64 -w 0)
+        RPC_SECRET_BASE64=$(printf "%s" "${RPC_SECRET}" | base64 -w 0)
+        # shellcheck disable=SC2086
         sed -i 's,secret:"[^"]*",secret:"'"${RPC_SECRET_BASE64}"'",g' $ariang_js_path
     fi
 fi
@@ -32,7 +34,7 @@ fi
 
 touch $conf_path/aria2.session
 
-if [[ -n "$ARIA2RPCPORT" ]]; then
+if [ -n "$ARIA2RPCPORT" ]; then
     echo "Changing rpc request port to $ARIA2RPCPORT"
     sed -i "s/6800/${ARIA2RPCPORT}/g" $ariang_js_path
 fi
@@ -40,7 +42,7 @@ fi
 userid="$(id -u)" # 65534 - nobody, 0 - root
 groupid="$(id -g)"
 
-if [[ -n "$PUID" && -n "$PGID" ]]; then
+if [ -n "$PUID" ] && [ -n "$PGID" ]; then
     echo "Running as user $PUID:$PGID"
     userid=$PUID
     groupid=$PGID

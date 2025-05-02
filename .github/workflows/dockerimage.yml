@@ -2,13 +2,13 @@ name: Docker image build
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 0 * * *"
+  # schedule:
+  #   - cron: "0 0 * * *"
 
 jobs:
   build_image:
     name: Build docker image
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
       - name: Fetch latest github release
@@ -61,8 +61,8 @@ jobs:
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
         run: |
           echo $DOCKERHUB_PASSWORD | docker login --username $DOCKERHUB_USERNAME --password-stdin
-          docker buildx build --push --platform linux/amd64,linux/arm64,linux/arm/v7 --build-arg ARIANG_VERSION=$ARIANG_VERSION --build-arg VCS_REF=${GITHUB_SHA::7} --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` -t $DOCKERHUB_REPOSITORY:$ARIANG_VERSION .
-          docker buildx build --push --platform linux/amd64,linux/arm64,linux/arm/v7 --build-arg ARIANG_VERSION=$ARIANG_VERSION --build-arg VCS_REF=${GITHUB_SHA::7} --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` -t $DOCKERHUB_REPOSITORY:latest .
+          docker buildx build --push --platform linux/amd64 --build-arg ARIANG_VERSION=$ARIANG_VERSION --build-arg VCS_REF=${GITHUB_SHA::7} --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` -t $DOCKERHUB_REPOSITORY:$ARIANG_VERSION .
+          docker buildx build --push --platform linux/amd64 --build-arg ARIANG_VERSION=$ARIANG_VERSION --build-arg VCS_REF=${GITHUB_SHA::7} --build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` -t $DOCKERHUB_REPOSITORY:latest .
 
 
       - name: Update DockerHub Description

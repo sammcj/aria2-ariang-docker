@@ -3,7 +3,7 @@
   auto_https off
 }
 
-:8080 
+:8080
 reverse_proxy /jsonrpc 127.0.0.1:6800
 reverse_proxy /rpc 127.0.0.1:6800
 
