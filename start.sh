@@ -16,26 +16,17 @@ if [ -n "$RPC_SECRET" ]; then
     printf 'rpc-secret=%s\n' "${RPC_SECRET}" >>$conf_path/aria2.conf
 
     if [ -n "$EMBED_RPC_SECRET" ]; then
-        echo "Embedding RPC secret into ariang Web UI"
+        echo "Embedding RPC secret into AriaNg Web UI"
         RPC_SECRET_BASE64=$(printf "%s" "${RPC_SECRET}" | base64 -w 0)
         # shellcheck disable=SC2086
         sed -i 's,secret:"[^"]*",secret:"'"${RPC_SECRET_BASE64}"'",g' $ariang_js_path
     fi
 fi
 
-if [ -n "$BASIC_AUTH_USERNAME" ] && [ -n "$BASIC_AUTH_PASSWORD" ]; then
-    echo "Enabling caddy basic auth"
-    echo "
-        basicauth / {
-            $BASIC_AUTH_USERNAME $(caddy hash-password -plaintext "${BASIC_AUTH_PASSWORD}")
-        }
-    " >>/usr/local/caddy/Caddyfile
-fi
-
 touch $conf_path/aria2.session
 
 if [ -n "$ARIA2RPCPORT" ]; then
-    echo "Changing rpc request port to $ARIA2RPCPORT"
+    echo "Changing RPC request port to $ARIA2RPCPORT"
     sed -i "s/6800/${ARIA2RPCPORT}/g" $ariang_js_path
 fi
 
@@ -51,5 +42,10 @@ fi
 chown -R "$userid":"$groupid" $conf_path
 chown -R "$userid":"$groupid" $data_path
 
-caddy start -config /usr/local/caddy/Caddyfile -adapter=caddyfile
+# Serve AriaNg static files using a lightweight web server (busybox httpd)
+echo "Starting lightweight web server for AriaNg on port 8080"
+busybox httpd -f -p 8080 -h /usr/local/www/ariang &
+
+# Start aria2c in foreground
+echo "Starting aria2c RPC server"
 su-exec "$userid":"$groupid" aria2c "$@"

@@ -7,7 +7,8 @@ ENV BUILD_DATE=${BUILD_DATE}
 ARG VCS_REF=main
 ENV VCS_REF=${VCS_REF}
 
-ENV ARIA2RPCPORT=8080
+ENV ARIA2_RPC_PORT=6800
+ENV ARIANG_WEB_PORT=8080
 
 LABEL maintainer="sammcj" \
     org.label-schema.build-date=$BUILD_DATE \
@@ -23,7 +24,7 @@ LABEL maintainer="sammcj" \
     org.label-schema.schema-version="1.0"
 
 RUN apk update \
-    && apk add --no-cache --update caddy aria2 su-exec curl
+    && apk add --no-cache --update aria2 su-exec curl busybox-extras
 
 # AriaNG
 WORKDIR /usr/local/www/ariang
@@ -38,12 +39,12 @@ WORKDIR /aria2
 
 COPY aria2.conf ./conf-copy/aria2.conf
 COPY start.sh ./
-COPY Caddyfile /usr/local/caddy/
 
 VOLUME /aria2/data
 VOLUME /aria2/conf
 
-EXPOSE 8080
+EXPOSE ${ARIA2_RPC_PORT}
+EXPOSE ${ARIANG_WEB_PORT}
 
 ENTRYPOINT ["./start.sh"]
 CMD ["--conf-path=/aria2/conf/aria2.conf"]
