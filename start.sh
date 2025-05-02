@@ -3,14 +3,14 @@
 conf_path=/aria2/conf
 conf_copy_path=/aria2/conf-copy
 data_path=/aria2/data
-# shellcheck disable=SC2125
 ariang_js_path=/usr/local/www/ariang/js/aria-ng*.js
 
-# If config does not exist - use default
+# Basic setup
 if [ ! -f $conf_path/aria2.conf ]; then
     cp $conf_copy_path/aria2.conf $conf_path/aria2.conf
 fi
 
+# Set up RPC secret
 if [ -n "$RPC_SECRET" ]; then
     sed -i '/^rpc-secret=/d' $conf_path/aria2.conf
     printf 'rpc-secret=%s\n' "${RPC_SECRET}" >>$conf_path/aria2.conf
@@ -18,11 +18,11 @@ if [ -n "$RPC_SECRET" ]; then
     if [ -n "$EMBED_RPC_SECRET" ]; then
         echo "Embedding RPC secret into AriaNg Web UI"
         RPC_SECRET_BASE64=$(printf "%s" "${RPC_SECRET}" | base64 -w 0)
-        # shellcheck disable=SC2086
         sed -i 's,secret:"[^"]*",secret:"'"${RPC_SECRET_BASE64}"'",g' $ariang_js_path
     fi
 fi
 
+# Add basic auth if configured
 if [ -n "$BASIC_AUTH_USERNAME" ] && [ -n "$BASIC_AUTH_PASSWORD" ]; then
     echo "Enabling caddy basic auth"
     echo "
@@ -34,22 +34,25 @@ fi
 
 touch $conf_path/aria2.session
 
-# IMPORTANT: Configure AriaNg to use the correct RPC path
-echo "Configuring AriaNg to use the correct RPC path with proper CORS support"
-# Use relative paths for RPC endpoint to avoid CORS issues
-sed -i 's#rpcInterface:"[^"]*"#rpcInterface:"jsonrpc"#g' $ariang_js_path
-# Use protocol based on environment variable or default to https
-if [ -n "$ARIANG_URL_SCHEME" ]; then
-    sed -i "s#protocol:\"[^\"]*\"#protocol:\"${ARIANG_URL_SCHEME}\"#g" $ariang_js_path
-else
-    sed -i 's#protocol:"[^"]*"#protocol:"https"#g' $ariang_js_path
-fi
-# Use empty hostname to make path relative to current hostname
-sed -i 's#rpcHost:"[^"]*"#rpcHost:""#g' $ariang_js_path
-# Remove port specification
-sed -i 's#rpcPort:[^,]*#rpcPort:""#g' $ariang_js_path
+# CRITICAL: Force AriaNg to use the correct RPC configuration
+echo "Forcing AriaNg to use the correct RPC path to prevent CORS issues"
 
-userid="$(id -u)" # 65534 - nobody, 0 - root
+# First, create a backup
+cp $ariang_js_path ${ariang_js_path}.bak
+
+# Completely rewrite the RPC configuration in AriaNg
+echo "Setting RPC to use relative path with current hostname"
+sed -i 's/rpcHost:"[^"]*"/rpcHost:""/g' $ariang_js_path
+sed -i 's/rpcPort:[^,]*/rpcPort:""/g' $ariang_js_path
+sed -i 's/protocol:"[^"]*"/protocol:"https"/g' $ariang_js_path
+sed -i 's/rpcInterface:"[^"]*"/rpcInterface:"jsonrpc"/g' $ariang_js_path
+
+# Double-check our changes
+echo "Verifying RPC configuration changes:"
+grep -n "rpcHost\|rpcPort\|protocol\|rpcInterface" $ariang_js_path
+
+# Setup ownership
+userid="$(id -u)"
 groupid="$(id -g)"
 
 if [ -n "$PUID" ] && [ -n "$PGID" ]; then
@@ -61,8 +64,52 @@ fi
 chown -R "$userid":"$groupid" $conf_path
 chown -R "$userid":"$groupid" $data_path
 
+# Update Caddyfile to explicitly handle CORS
+cat > /usr/local/caddy/Caddyfile << 'EOL'
+{
+  admin off
+  auto_https off
+}
+
+:8080 {
+  # Handle WebSocket connections
+  @websockets {
+    header Connection *Upgrade*
+    header Upgrade websocket
+  }
+  reverse_proxy @websockets 127.0.0.1:6800 {
+    header_up Host {host}
+    header_up Origin https://{host}
+  }
+
+  # Handle RPC requests with CORS headers
+  @rpc {
+    path /jsonrpc /rpc
+  }
+  handle @rpc {
+    header Access-Control-Allow-Origin "*"
+    header Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+    header Access-Control-Max-Age "86400"
+    reverse_proxy 127.0.0.1:6800 {
+      header_up Host {host}
+      header_up Origin https://{host}
+    }
+  }
+
+  # Serve static files
+  root * /usr/local/www/ariang
+  file_server
+  encode gzip
+
+  log {
+    level warn
+  }
+}
+EOL
+
 # Start Caddy in the background
-echo "Starting Caddy web server"
+echo "Starting Caddy web server with updated configuration"
 caddy start --config /usr/local/caddy/Caddyfile --adapter caddyfile
 
 # Start aria2c in foreground
