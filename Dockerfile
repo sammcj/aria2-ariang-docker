@@ -23,8 +23,17 @@ LABEL maintainer="sammcj" \
     org.label-schema.vendor="sammcj" \
     org.label-schema.schema-version="1.0"
 
-RUN apk update \
-    && apk add --no-cache --update aria2 su-exec curl busybox-extras
+# Install packages
+RUN apk update && \
+    apk add --no-cache --update \
+    aria2 \
+    su-exec \
+    curl \
+    caddy \
+    unzip
+
+# Create Caddyfile directory
+RUN mkdir -p /usr/local/caddy
 
 # AriaNG
 WORKDIR /usr/local/www/ariang
@@ -38,7 +47,9 @@ RUN wget --no-check-certificate https://github.com/mayswind/AriaNg/releases/down
 WORKDIR /aria2
 
 COPY aria2.conf ./conf-copy/aria2.conf
+COPY Caddyfile /usr/local/caddy/Caddyfile
 COPY start.sh ./
+RUN chmod +x ./start.sh
 
 VOLUME /aria2/data
 VOLUME /aria2/conf

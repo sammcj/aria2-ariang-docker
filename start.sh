@@ -23,6 +23,15 @@ if [ -n "$RPC_SECRET" ]; then
     fi
 fi
 
+if [ -n "$BASIC_AUTH_USERNAME" ] && [ -n "$BASIC_AUTH_PASSWORD" ]; then
+    echo "Enabling caddy basic auth"
+    echo "
+        basicauth / {
+            $BASIC_AUTH_USERNAME $(caddy hash-password -plaintext "${BASIC_AUTH_PASSWORD}")
+        }
+    " >>/usr/local/caddy/Caddyfile
+fi
+
 touch $conf_path/aria2.session
 
 if [ -n "$ARIA2RPCPORT" ]; then
@@ -48,19 +57,16 @@ if ! grep -q "^rpc-listen-port=" $conf_path/aria2.conf; then
     echo "rpc-listen-port=6800" >> $conf_path/aria2.conf
 fi
 
-# Try to use Python's built-in HTTP server if available
-if command -v python3 >/dev/null 2>&1; then
-    echo "Starting Python HTTP server for AriaNg on port 8080"
-    cd /usr/local/www/ariang && python3 -m http.server 8080 &
-    echo "Python HTTP server started with PID $!"
-elif command -v python >/dev/null 2>&1; then
-    echo "Starting Python HTTP server for AriaNg on port 8080"
-    cd /usr/local/www/ariang && python -m SimpleHTTPServer 8080 &
-    echo "Python HTTP server started with PID $!"
-else
-    echo "ERROR: Could not find a suitable web server. Please install python3, python, or add a web server to the container."
-    echo "Will try to continue without the web UI."
+# Ensure rpc-listen-all is enabled
+if ! grep -q "^rpc-listen-all=true" $conf_path/aria2.conf; then
+    echo "Ensuring rpc-listen-all=true in aria2.conf"
+    sed -i '/^rpc-listen-all=/d' $conf_path/aria2.conf
+    echo "rpc-listen-all=true" >> $conf_path/aria2.conf
 fi
+
+# Start Caddy in the background
+echo "Starting Caddy web server"
+caddy start --config /usr/local/caddy/Caddyfile --adapter caddyfile
 
 # Start aria2c in foreground
 echo "Starting aria2c RPC server"
