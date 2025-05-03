@@ -46,6 +46,10 @@ RUN wget --no-check-certificate https://github.com/mayswind/AriaNg/releases/down
 
 WORKDIR /aria2
 
+# Add custom override script
+COPY override.js /usr/local/www/ariang/js/
+RUN echo '<script src="js/override.js"></script>' >> /usr/local/www/ariang/index.html
+
 COPY aria2.conf ./conf-copy/aria2.conf
 COPY Caddyfile /usr/local/caddy/Caddyfile
 COPY start.sh ./

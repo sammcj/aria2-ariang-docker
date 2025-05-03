@@ -4,37 +4,51 @@
 }
 
 :8080 {
+  # Log level
+  log {
+    level error
+  }
+
+  # Enable CORS globally
+  header {
+    Access-Control-Allow-Origin "*"
+    Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+    Access-Control-Max-Age "1728000"
+    # Enable for debugging
+    +X-Debug-CORS "Enabled"
+  }
+
+  # Handle OPTIONS preflight requests
+  @options {
+    method OPTIONS
+  }
+  handle @options {
+    respond 204
+  }
+
   # Handle WebSocket connections
   @websockets {
     header Connection *Upgrade*
     header Upgrade websocket
   }
-
-  reverse_proxy @websockets 127.0.0.1:6800 {
-    header_up Host {host}
-    header_up Origin https://{host}
+  handle @websockets {
+    reverse_proxy 127.0.0.1:6800
   }
 
-  # Handle CORS for RPC endpoints
-  @rpc {
-    path /jsonrpc /rpc
+  # Proxy all RPC requests to aria2
+  handle /jsonrpc* {
+    reverse_proxy 127.0.0.1:6800
   }
 
-  handle @rpc {
-    header Access-Control-Allow-Origin "*"
-    header Access-Control-Allow-Methods "GET, POST, OPTIONS"
-    header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-    header Access-Control-Max-Age "86400"
-
+  handle /rpc* {
     reverse_proxy 127.0.0.1:6800
   }
 
   # Serve static files
-  root * /usr/local/www/ariang
-  file_server
-  encode gzip
-
-  log {
-    level warn
+  handle {
+    root * /usr/local/www/ariang
+    file_server
+    encode gzip
   }
 }
