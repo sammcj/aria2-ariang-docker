@@ -10,17 +10,17 @@ if [ ! -f $conf_path/aria2.conf ]; then
     cp $conf_copy_path/aria2.conf $conf_path/aria2.conf
 fi
 
-# Set up RPC secret
-if [ -n "$RPC_SECRET" ]; then
-    sed -i '/^rpc-secret=/d' $conf_path/aria2.conf
-    printf 'rpc-secret=%s\n' "${RPC_SECRET}" >>$conf_path/aria2.conf
+# # Set up RPC secret
+# if [ -n "$RPC_SECRET" ]; then
+#     sed -i '/^rpc-secret=/d' $conf_path/aria2.conf
+#     printf 'rpc-secret=%s\n' "${RPC_SECRET}" >>$conf_path/aria2.conf
 
-    if [ -n "$EMBED_RPC_SECRET" ]; then
-        echo "Embedding RPC secret into AriaNg Web UI"
-        RPC_SECRET_BASE64=$(printf "%s" "${RPC_SECRET}" | base64 -w 0)
-        sed -i 's,secret:"[^"]*",secret:"'"${RPC_SECRET_BASE64}"'",g' $ariang_js_path
-    fi
-fi
+#     if [ -n "$EMBED_RPC_SECRET" ]; then
+#         echo "Embedding RPC secret into AriaNg Web UI"
+#         RPC_SECRET_BASE64=$(printf "%s" "${RPC_SECRET}" | base64 -w 0)
+#         sed -i 's,secret:"[^"]*",secret:"'"${RPC_SECRET_BASE64}"'",g' $ariang_js_path
+#     fi
+# fi
 
 # Add basic auth if configured
 if [ -n "$BASIC_AUTH_USERNAME" ] && [ -n "$BASIC_AUTH_PASSWORD" ]; then
