@@ -4,30 +4,32 @@
 }
 
 :8080 {
-  # Handle WebSocket connections for RPC
+  # Handle WebSocket connections
   @websockets {
     header Connection *Upgrade*
     header Upgrade websocket
   }
-  reverse_proxy @websockets 127.0.0.1:6800
 
-  # Handle standard RPC requests
-  reverse_proxy /jsonrpc 127.0.0.1:6800
-  reverse_proxy /rpc 127.0.0.1:6800
+  reverse_proxy @websockets 127.0.0.1:6800 {
+    header_up Host {host}
+    header_up Origin https://{host}
+  }
 
-  # Enable CORS headers for the RPC endpoints
-  header /jsonrpc Access-Control-Allow-Origin "*"
-  header /jsonrpc Access-Control-Allow-Methods "GET, POST, OPTIONS"
-  header /jsonrpc Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-  header /jsonrpc Access-Control-Max-Age "86400"
+  # Handle CORS for RPC endpoints
+  @rpc {
+    path /jsonrpc /rpc
+  }
 
-  # Same for /rpc
-  header /rpc Access-Control-Allow-Origin "*"
-  header /rpc Access-Control-Allow-Methods "GET, POST, OPTIONS"
-  header /rpc Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-  header /rpc Access-Control-Max-Age "86400"
+  handle @rpc {
+    header Access-Control-Allow-Origin "*"
+    header Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+    header Access-Control-Max-Age "86400"
 
-  # Serve the static files
+    reverse_proxy 127.0.0.1:6800
+  }
+
+  # Serve static files
   root * /usr/local/www/ariang
   file_server
   encode gzip

@@ -40,12 +40,13 @@ echo "Forcing AriaNg to use the correct RPC path to prevent CORS issues"
 # First, create a backup
 cp $ariang_js_path ${ariang_js_path}.bak
 
-# Completely rewrite the RPC configuration in AriaNg
-echo "Setting RPC to use relative path with current hostname"
-sed -i 's/rpcHost:"[^"]*"/rpcHost:""/g' $ariang_js_path
-sed -i 's/rpcPort:[^,]*/rpcPort:""/g' $ariang_js_path
-sed -i 's/protocol:"[^"]*"/protocol:"https"/g' $ariang_js_path
-sed -i 's/rpcInterface:"[^"]*"/rpcInterface:"jsonrpc"/g' $ariang_js_path
+# Configure AriaNg to use the correct RPC endpoint
+echo "Configuring AriaNg to use correct RPC path"
+sed -i 's#rpcInterface:"[^"]*"#rpcInterface:"jsonrpc"#g' $ariang_js_path
+sed -i 's#protocol:"[^"]*"#protocol:"https"#g' $ariang_js_path
+# Use empty host to make it use relative URLs against current domain
+sed -i 's#rpcHost:"[^"]*"#rpcHost:""#g' $ariang_js_path
+sed -i 's#rpcPort:[^,]*#rpcPort:""#g' $ariang_js_path
 
 # Double-check our changes
 echo "Verifying RPC configuration changes:"
